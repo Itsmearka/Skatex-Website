@@ -1,13 +1,16 @@
 <script>
     import * as prismicH from "@prismicio/helpers"
     export let slice
-    const imageSrc=prismicH.asImageWidthSrcSet(slice.primary.optional_image)
+    const image = slice.primary.optional_image
+    const imageSrc = image ? prismicH.asImageWidthSrcSet(image) : null
     const reverse = slice.primary.image_side === 'right'
 </script>
 
-<div class="layout box">
-        <img src={imageSrc.src} srcset={imageSrc.srcset} alt={slice.primary.optional_image.alt}>
-        <p class="txt">{@html prismicH.asHTML(slice.primary.description)} </p>
+<div class:reverse class="layout box">
+    {#if imageSrc}
+        <img src={imageSrc.src} srcset={imageSrc.srcset} alt={image.alt ?? ''}>
+    {/if}
+    <p class="txt">{@html prismicH.asHTML(slice.primary.description)}</p>
 </div>
 
 <style>
@@ -32,9 +35,27 @@
         margin-top: 5vw;
         margin-bottom: 5vw;
     }
-    
+
+    .box.reverse
+    {
+        flex-direction: row-reverse;
+    }
+
     p{
         padding-left: 1.5rem;
+    }
+
+    @media (max-width: 640px)
+    {
+        .box, .box.reverse
+        {
+            flex-direction: column;
+        }
+
+        img
+        {
+            width: 100%;
+        }
     }
 
 </style>
