@@ -1,10 +1,12 @@
 <script>
+    import * as prismicH from "@prismicio/helpers"
     export let slice
+    $: label = slice.slice_label ?? prismicH.asText(slice.primary.title)
 </script>
 
 <div class="layout">
     <div class="rainbow">
-        <h2 class="text">{slice.slice_label}</h2>
+        <h2 class="text">{label}</h2>
     </div>
 </div>
 
