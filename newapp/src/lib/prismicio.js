@@ -1,6 +1,7 @@
 import * as prismic from '@prismicio/client'
+import { env } from '$env/dynamic/public'
 
-const repoName = 'sveltapp' // Fill in your repository name
+const repoName = env.PUBLIC_PRISMIC_REPO ?? 'go84va8p' // Prismic repository domain (env-overridable)
 const accessToken = '' // If your repository is private, add an access token
 // This defines how you will structure URL paths in your project.
 // Update the types to match the Custom Types in your project, and edit
