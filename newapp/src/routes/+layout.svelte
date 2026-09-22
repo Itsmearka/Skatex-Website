@@ -1,12 +1,22 @@
 <script>
-    import pico from "@picocss/pico"
+    import "@picocss/pico"
+    export let data
+
+    const labels = {
+        homepage: 'Home',
+        resources: 'Resources',
+        basics: 'Basics',
+        contact: 'Contact'
+    }
 </script>
 
 <nav class="layout">
-    <a prefetch href="/">My Site</a>
-    <a prefetch href="/resources">Resources</a>
-    <a prefetch href="/basics">Basics</a>
-    <a prefetch href="/contact">Contact</a>
+    <a prefetch href="/" class="brand">Skatex</a>
+    {#each data?.pages ?? [] as page (page.id)}
+        <a prefetch href={page.uid === 'homepage' ? '/' : `/${page.uid}`}>
+            {labels[page.uid] ?? page.uid}
+        </a>
+    {/each}
 </nav>
 
 <main>
@@ -14,7 +24,7 @@
 </main>
 
 <footer>
-    Acme Corporation 2023
+    Skatex
 </footer>
 
 <style>
