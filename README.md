@@ -2,7 +2,7 @@
 
 A skate-culture website built with SvelteKit and Prismic. The site brings together practical skate guides, gear notes, and stories from the park, with a dark visual system, soft ambient orbs, and responsive layouts.
 
-The application lives in [`newapp/`](newapp/). This root README is the project overview shown on the GitHub repository home page.
+The application lives in [`newapp/`] (newapp/). This root README is the project overview shown on the GitHub repository home page.
 
 ## Run locally
 
