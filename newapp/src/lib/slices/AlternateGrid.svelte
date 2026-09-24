@@ -1,6 +1,8 @@
 <script>
 	import * as prismicH from '@prismicio/helpers';
 	import { cursorGlow } from '$lib/cursorGlow';
+	import { reveal } from '$lib/scrollReveal';
+	import { tilt } from '$lib/tilt';
 	import { normalizeUiText } from '$lib/typography';
 	export let slice;
 
@@ -16,9 +18,10 @@
 	aria-label="Featured skate content"
 	data-tour="feature"
 	use:cursorGlow
+	use:reveal
 >
 	{#if imageSrc}
-		<div class="image-frame" class:portrait>
+		<div class="image-frame" class:portrait use:tilt={{ max: 6, scale: 1.03 }}>
 			<img
 				src={imageSrc.src}
 				srcset={imageSrc.srcset}
@@ -97,6 +100,10 @@
 		border-radius: 18px;
 		background: #131428;
 		box-shadow: 0 0 34px rgba(122, 67, 255, 0.1);
+		transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))
+			scale(var(--tilt-scale, 1));
+		transition: transform 220ms ease-out;
+		will-change: transform;
 	}
 
 	.image-frame.portrait {
@@ -121,11 +128,13 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		transition: transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+		transition: transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1), filter 300ms ease;
 	}
 
 	.feature-grid:hover img {
 		transform: scale(1.035);
+		filter: drop-shadow(2px 0 0 rgba(244, 63, 94, 0.28))
+			drop-shadow(-2px 0 0 rgba(45, 212, 255, 0.28));
 	}
 
 	.feature-grid:hover .image-frame.portrait img {
