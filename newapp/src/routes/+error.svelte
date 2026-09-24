@@ -1,6 +1,8 @@
 <script>
 	import { page } from '$app/stores';
 	import { cursorGlow } from '$lib/cursorGlow';
+	import { magnetic } from '$lib/magnetic';
+	import { reveal } from '$lib/scrollReveal';
 
 	$: status = $page.status;
 	$: isNotFound = status === 404;
@@ -14,7 +16,7 @@
 <section class="error-page" aria-labelledby="error-title">
 	<div class="error-orbit orbit-one" aria-hidden="true" />
 	<div class="error-orbit orbit-two" aria-hidden="true" />
-	<div class="error-card" use:cursorGlow>
+	<div class="error-card" use:cursorGlow use:reveal>
 		<p class="error-code">{status}</p>
 		<p class="error-kicker">{isNotFound ? 'Off the map' : 'A little detour'}</p>
 		<h1 id="error-title">
@@ -26,7 +28,7 @@
 				: 'The page could not load right now. Give it another try, or head back to the start.'}
 		</p>
 		<div class="error-actions">
-			<a class="home-button" href="/">Back to home</a>
+			<a class="home-button" use:magnetic href="/">Back to home</a>
 			<a class="secondary-link" href="/resources">Explore resources</a>
 		</div>
 	</div>
