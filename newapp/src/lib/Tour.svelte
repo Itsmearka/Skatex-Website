@@ -2,6 +2,7 @@
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { page } from '$app/stores';
 	import { cursorGlow } from '$lib/cursorGlow';
+	import { magnetic } from '$lib/magnetic';
 
 	const steps = [
 		{
@@ -15,6 +16,11 @@
 			target: '[data-tour="navigation"]'
 		},
 		{
+			title: 'Jump anywhere, instantly',
+			copy: 'Press ⌘K (or Ctrl+K) at any time to open the command palette and jump to any page or action without touching the nav.',
+			target: '[data-tour="palette"]'
+		},
+		{
 			title: 'Content that stays fresh',
 			copy: 'The page sections are Prismic slices. Editors can update copy, imagery, and section order while the Svelte components keep the presentation consistent.',
 			target: '[data-tour="content"]'
@@ -23,6 +29,11 @@
 			title: 'Flexible feature blocks',
 			copy: 'Feature imagery can move to either side or be omitted. The layout adapts for smaller screens.',
 			target: '[data-tour="feature"]'
+		},
+		{
+			title: 'Hear from the community',
+			copy: 'A scrolling strip of rider quotes rounds out the homepage. It pauses the moment you hover over it.',
+			target: '[data-tour="community"]'
 		},
 		{
 			title: 'A little motion, by design',
@@ -101,6 +112,8 @@
 	}
 
 	onMount(() => {
+		window.addEventListener('skatex:start-tour', startTour);
+
 		if (!$page.url.searchParams.has('tour')) return;
 		const url = new URL($page.url);
 		url.searchParams.delete('tour');
@@ -108,7 +121,10 @@
 		startTour();
 	});
 
-	onDestroy(closeTour);
+	onDestroy(() => {
+		if (typeof window !== 'undefined') window.removeEventListener('skatex:start-tour', startTour);
+		closeTour();
+	});
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -155,6 +171,7 @@
 				<button
 					class="next-button"
 					type="button"
+					use:magnetic
 					on:click={() => (stepIndex === steps.length - 1 ? closeTour() : goToStep(stepIndex + 1))}
 				>
 					{stepIndex === steps.length - 1 ? 'Finish' : 'Next'}
