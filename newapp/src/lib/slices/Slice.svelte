@@ -1,6 +1,7 @@
 <script>
 	import * as prismicH from '@prismicio/helpers';
 	import { cursorGlow } from '$lib/cursorGlow';
+	import { reveal } from '$lib/scrollReveal';
 	import { normalizeUiText } from '$lib/typography';
 	export let slice;
 
@@ -9,7 +10,7 @@
 	$: description = normalizeUiText(prismicH.asHTML(slice.primary.description));
 </script>
 
-<section class="copy-section" data-tour="hero" use:cursorGlow>
+<section class="copy-section" data-tour="hero" use:cursorGlow use:reveal>
 	{#if eyebrow}
 		<div class="copy-eyebrow">{@html eyebrow}</div>
 	{/if}

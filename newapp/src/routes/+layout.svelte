@@ -1,7 +1,15 @@
 <script>
 	import '@picocss/pico';
-	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
+	import { fade, fly } from 'svelte/transition';
+	import { quintOut } from 'svelte/easing';
+	import { page, navigating } from '$app/stores';
 	import Tour from '$lib/Tour.svelte';
+	import CursorTrail from '$lib/CursorTrail.svelte';
+	import CommandPalette from '$lib/CommandPalette.svelte';
+	import SkeletonLoader from '$lib/SkeletonLoader.svelte';
+	import { magnetic } from '$lib/magnetic';
+	import { prefersReducedMotion } from '$lib/motion';
 	export let data;
 
 	const labels = {
@@ -10,6 +18,31 @@
 		basics: 'Basics',
 		contact: 'Contact'
 	};
+
+	let commandPalette;
+	let scrollProgress = 0;
+	let isScrolled = false;
+	let reducedMotion = false;
+
+	$: currentPath = $page.url.pathname.replace(/\/+$/, '') || '/';
+
+	function handleScroll() {
+		const doc = document.documentElement;
+		const max = doc.scrollHeight - doc.clientHeight;
+		scrollProgress = max > 0 ? Math.min((window.scrollY / max) * 100, 100) : 0;
+		isScrolled = isScrolled ? window.scrollY > 8 : window.scrollY > 40;
+	}
+
+	function scrollToTop() {
+		window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
+	}
+
+	onMount(() => {
+		reducedMotion = prefersReducedMotion();
+		handleScroll();
+		window.addEventListener('scroll', handleScroll, { passive: true });
+		return () => window.removeEventListener('scroll', handleScroll);
+	});
 
 	const skateRoute =
 		'M-80 440 C120 300 270 300 420 388 S650 490 820 330 S1120 180 1520 365 C1620 390 1620 280 1520 300 C1360 190 1420 150 1160 310 C900 470 840 380 600 260 C360 140 220 350 -80 220 C-160 270 -160 670 -80 790 C150 660 330 770 520 765 C560 765 590 770 620 770 a100 100 0 0 0 0 -200 a100 100 0 0 0 0 200 C740 790 960 650 1140 740 S1400 850 1520 710 C1700 750 1750 1070 900 1080 C200 1090 -240 640 -80 440';
@@ -47,11 +80,21 @@
 	<title>Skatex | Skate culture in motion</title>
 </svelte:head>
 
+<a href="#main-content" class="skip-link">Skip to content</a>
+
+<div class="top-progress" aria-hidden="true">
+	<span class="top-progress-fill" style={`width: ${scrollProgress}%`} />
+	{#if $navigating}
+		<span class="top-progress-sweep" />
+	{/if}
+</div>
+
 <div class="app-shell">
 	<div class="ambient" data-tour="motion" aria-hidden="true">
 		<span class="orb orb-violet" />
 		<span class="orb orb-cyan" />
 		<span class="orb orb-pink" />
+		<span class="grain-overlay" />
 		<svg
 			class="skate-art"
 			viewBox="0 0 1440 900"
@@ -233,7 +276,7 @@
 		<span class="ambient-grid" />
 	</div>
 
-	<header class="site-header">
+	<header class="site-header" class:is-scrolled={isScrolled}>
 		<nav class="site-nav" aria-label="Primary navigation" data-tour="navigation">
 			<a prefetch href="/" class="brand" aria-label="Skatex home">
 				<span class="brand-mark" aria-hidden="true">S</span>
@@ -244,8 +287,7 @@
 					<a
 						prefetch
 						href={navItem.uid === 'homepage' ? '/' : `/${navItem.uid}`}
-						aria-current={$page.url.pathname ===
-						(navItem.uid === 'homepage' ? '/' : `/${navItem.uid}`)
+						aria-current={currentPath === (navItem.uid === 'homepage' ? '/' : `/${navItem.uid}`)
 							? 'page'
 							: undefined}
 					>
@@ -253,20 +295,74 @@
 					</a>
 				{/each}
 			</div>
+			<button
+				type="button"
+				class="palette-trigger"
+				data-tour="palette"
+				use:magnetic
+				aria-label="Open command palette"
+				on:click={() => commandPalette?.open()}
+			>
+				<span aria-hidden="true">Search</span>
+				<kbd aria-hidden="true">⌘K</kbd>
+			</button>
 		</nav>
 	</header>
 
 	<main id="main-content" class="site-main">
-		<slot />
+		<div class="route-viewport">
+			{#key $page.url.pathname}
+				<div
+					class="route-transition"
+					in:fly={reducedMotion ? { duration: 0 } : { y: 14, duration: 420, easing: quintOut }}
+					out:fade={reducedMotion ? { duration: 0 } : { duration: 120 }}
+				>
+					<slot />
+				</div>
+			{/key}
+			{#if $navigating}
+				<div class="route-loading" transition:fade={{ duration: 150 }}>
+					<SkeletonLoader />
+				</div>
+			{/if}
+		</div>
 	</main>
 
 	<footer class="site-footer" data-tour="operations">
-		<a class="footer-brand" href="/">Skatex</a>
-		<p>Built for the ones who keep rolling.</p>
-		<span class="footer-rule" />
-		<small>Skate culture, in motion.</small>
+		<div class="footer-top">
+			<div class="footer-brand-block">
+				<a class="footer-brand" href="/">Skatex</a>
+				<p class="footer-blurb">
+					Skate culture, practical guides, and stories from the park &mdash; built for the ones who
+					keep rolling.
+				</p>
+			</div>
+			<nav class="footer-links" aria-label="Footer navigation">
+				<span class="footer-heading">Explore</span>
+				<a prefetch href="/">Home</a>
+				{#each data?.pages ?? [] as navItem (navItem.id)}
+					{#if navItem.uid !== 'homepage'}
+						<a prefetch href={`/${navItem.uid}`}>{labels[navItem.uid] ?? navItem.uid}</a>
+					{/if}
+				{/each}
+			</nav>
+			<div class="footer-connect">
+				<span class="footer-heading">Connect</span>
+				<button type="button" class="footer-link-button">Instagram</button>
+				<button type="button" class="footer-link-button">YouTube</button>
+				<button type="button" class="footer-link-button">Newsletter</button>
+			</div>
+		</div>
+		<div class="footer-bottom">
+			<small>Skate culture, in motion.</small>
+			<button type="button" class="back-to-top" use:magnetic on:click={scrollToTop}>
+				Back to top ↑
+			</button>
+		</div>
 	</footer>
 
+	<CursorTrail />
+	<CommandPalette bind:this={commandPalette} pages={data?.pages} />
 	<Tour />
 </div>
 
@@ -303,13 +399,116 @@
 		outline-offset: 4px;
 	}
 
+	:global(html) {
+		scrollbar-color: #8a64ff #12132a;
+		scrollbar-width: thin;
+	}
+
+	:global(::-webkit-scrollbar) {
+		width: 10px;
+		height: 10px;
+	}
+
+	:global(::-webkit-scrollbar-track) {
+		background: #0c0e1c;
+	}
+
+	:global(::-webkit-scrollbar-thumb) {
+		border: 2px solid #0c0e1c;
+		border-radius: 999px;
+		background: linear-gradient(180deg, #8a64ff, #7de8f0);
+	}
+
+	:global(::-webkit-scrollbar-thumb:hover) {
+		background: linear-gradient(180deg, #a084ff, #9af0e8);
+	}
+
+	:global(.reveal-init) {
+		opacity: 0;
+		transform: translateY(22px);
+		transition: opacity 620ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms),
+			transform 620ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms);
+		will-change: opacity, transform;
+	}
+
+	:global(.reveal-init.is-revealed) {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	:global(.is-magnetic) {
+		--magnet-x: 0px;
+		--magnet-y: 0px;
+		translate: var(--magnet-x) var(--magnet-y);
+		transition: transform 200ms ease;
+		will-change: translate;
+	}
+
+	.skip-link {
+		position: absolute;
+		top: -60px;
+		left: 16px;
+		z-index: 3000;
+		padding: 12px 18px;
+		border: 1px solid rgba(167, 139, 250, 0.5);
+		border-radius: 12px;
+		background: #101222;
+		color: #f4f2ff;
+		font-size: 0.85rem;
+		font-weight: 750;
+		transition: top 180ms ease;
+	}
+
+	.skip-link:focus-visible {
+		top: 16px;
+		outline: 2px solid #71e7f4;
+		outline-offset: 2px;
+	}
+
+	.top-progress {
+		position: fixed;
+		top: 0;
+		left: 0;
+		z-index: 1500;
+		width: 100%;
+		height: 3px;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.top-progress-fill {
+		display: block;
+		height: 100%;
+		background: linear-gradient(90deg, #8f65ff, #78eaf1, #e66fc5);
+		transition: width 120ms ease;
+	}
+
+	.top-progress-sweep {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 32%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, #9af0e8, #a6a0ff, transparent);
+		animation: top-progress-sweep-move 900ms ease-in-out infinite;
+	}
+
+	@keyframes top-progress-sweep-move {
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(410%);
+		}
+	}
+
 	.app-shell {
 		position: relative;
 		isolation: isolate;
 		display: flex;
 		min-height: 100vh;
 		flex-direction: column;
-		overflow: hidden;
+		overflow-x: clip;
 	}
 
 	.ambient {
@@ -430,6 +629,15 @@
 		mask-image: linear-gradient(to bottom, black, transparent 86%);
 	}
 
+	.grain-overlay {
+		position: absolute;
+		inset: 0;
+		opacity: 0.05;
+		mix-blend-mode: overlay;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+		background-size: 160px 160px;
+	}
+
 	:global(body.tour-open) .site-header,
 	:global(body.tour-open) .site-main,
 	:global(body.tour-open) .site-footer {
@@ -437,10 +645,17 @@
 	}
 
 	.site-header {
-		position: relative;
-		z-index: 2;
+		position: sticky;
+		top: 10px;
+		z-index: 60;
 		width: min(100% - 40px, 1120px);
 		margin: 20px auto 0;
+		transition: margin-top 320ms ease-in-out, width 320ms ease-in-out;
+	}
+
+	.site-header.is-scrolled {
+		width: min(calc((100% - 40px) * 0.75), 840px);
+		margin-top: 10px;
 	}
 
 	.site-nav {
@@ -455,6 +670,45 @@
 		background: rgba(15, 16, 33, 0.74);
 		box-shadow: 0 14px 48px rgba(0, 0, 0, 0.22);
 		backdrop-filter: blur(22px);
+		transition: padding 320ms ease-in-out, min-height 320ms ease-in-out,
+			background 320ms ease-in-out, box-shadow 320ms ease-in-out;
+	}
+
+	.site-header.is-scrolled .site-nav {
+		min-height: 54px;
+		padding: 6px 14px;
+		background: rgba(10, 11, 24, 0.88);
+		box-shadow: 0 18px 60px rgba(0, 0, 0, 0.36);
+	}
+
+	.palette-trigger {
+		display: inline-flex;
+		width: max-content;
+		flex: 0 0 auto;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 12px;
+		border: 1px solid rgba(207, 202, 255, 0.16);
+		border-radius: 999px;
+		background: rgba(255, 255, 255, 0.03);
+		color: #aaa9bd;
+		font-size: 0.78rem;
+		font-weight: 650;
+		transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+	}
+
+	.palette-trigger:hover {
+		border-color: rgba(167, 135, 255, 0.32);
+		background: rgba(137, 96, 255, 0.14);
+		color: #fff;
+	}
+
+	.palette-trigger kbd {
+		padding: 2px 6px;
+		border: 1px solid rgba(207, 202, 255, 0.24);
+		border-radius: 6px;
+		font-family: inherit;
+		font-size: 0.68rem;
 	}
 
 	.brand {
@@ -511,7 +765,7 @@
 	}
 
 	.nav-links a[aria-current='page'] {
-		animation: nav-tab-bounce 420ms cubic-bezier(0.34, 1.42, 0.64, 1);
+		animation: nav-tab-bounce 560ms cubic-bezier(0.34, 1.56, 0.64, 1);
 		transform-origin: center;
 	}
 
@@ -523,21 +777,37 @@
 		margin: clamp(30px, 4vw, 52px) auto clamp(48px, 6vw, 68px);
 	}
 
+	.route-viewport {
+		position: relative;
+	}
+
+	.route-loading {
+		position: absolute;
+		inset: 0;
+		z-index: 5;
+		padding: 2px;
+		background: rgba(9, 11, 22, 0.94);
+		border-radius: 18px;
+	}
+
 	.site-footer {
 		position: relative;
 		z-index: 1;
-		display: grid;
 		width: min(100% - 40px, 1120px);
-		grid-template-columns: auto 1fr auto;
-		align-items: center;
-		gap: 22px;
 		margin: 0 auto 28px;
-		padding: 22px 4px 0;
+		padding: 30px 4px 0;
 		border-top: 1px solid rgba(207, 202, 255, 0.12);
 		color: #85849a;
 	}
 
+	.footer-top {
+		display: grid;
+		grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+		gap: clamp(20px, 4vw, 48px);
+	}
+
 	.footer-brand {
+		display: inline-block;
 		color: #e8e4ff;
 		font-size: 0.9rem;
 		font-weight: 800;
@@ -545,19 +815,82 @@
 		text-transform: uppercase;
 	}
 
-	.site-footer p,
-	.site-footer small {
-		margin: 0;
+	.footer-blurb {
+		max-width: 320px;
+		margin: 12px 0 0;
+		color: #85849a;
+		font-size: 0.85rem;
+		line-height: 1.65;
+	}
+
+	.footer-heading {
+		display: block;
+		margin-bottom: 12px;
+		color: #8debf1;
+		font-size: 0.68rem;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+	}
+
+	.footer-links,
+	.footer-connect {
+		display: flex;
+		flex-direction: column;
+		gap: 9px;
+	}
+
+	.footer-links a,
+	.footer-link-button {
+		width: max-content;
+		border: 0;
+		background: transparent;
+		padding: 0;
+		color: #b5b3c7;
+		font-size: 0.86rem;
+		font-family: inherit;
+		font-weight: 600;
+		text-align: left;
+		cursor: pointer;
+		transition: color 160ms ease;
+	}
+
+	.footer-links a:hover,
+	.footer-link-button:hover {
+		color: #8debf1;
+	}
+
+	.footer-bottom {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		margin-top: 28px;
+		padding: 18px 0;
+		border-top: 1px solid rgba(207, 202, 255, 0.08);
+	}
+
+	.footer-bottom small {
 		color: inherit;
 		font-size: 0.78rem;
 	}
 
-	.site-footer p {
-		justify-self: center;
+	.back-to-top {
+		width: max-content;
+		padding: 8px 14px;
+		border: 1px solid rgba(207, 202, 255, 0.18);
+		border-radius: 999px;
+		background: rgba(255, 255, 255, 0.03);
+		color: #d7d4e7;
+		font-size: 0.78rem;
+		font-weight: 650;
+		transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
 	}
 
-	.footer-rule {
-		display: none;
+	.back-to-top:hover {
+		border-color: rgba(141, 235, 241, 0.4);
+		background: rgba(141, 235, 241, 0.1);
+		color: #fff;
 	}
 
 	@keyframes skate-trail-reverse {
@@ -568,16 +901,23 @@
 
 	@keyframes nav-tab-bounce {
 		0% {
-			transform: translateY(3px) scale(0.92);
+			transform: translateY(3px) scale(0.9);
+			box-shadow: 0 0 0 rgba(137, 96, 255, 0);
 		}
-		58% {
-			transform: translateY(-2px) scale(1.06);
+		45% {
+			transform: translateY(-2px) scale(1.08);
+			box-shadow: 0 0 14px rgba(137, 96, 255, 0.28);
 		}
-		82% {
-			transform: translateY(1px) scale(0.99);
+		68% {
+			transform: translateY(1px) scale(0.975);
+			box-shadow: 0 0 6px rgba(137, 96, 255, 0.14);
+		}
+		85% {
+			transform: translateY(-0.5px) scale(1.02);
 		}
 		100% {
 			transform: translateY(0) scale(1);
+			box-shadow: 0 0 0 rgba(137, 96, 255, 0);
 		}
 	}
 
@@ -605,6 +945,10 @@
 			margin-top: 14px;
 		}
 
+		.site-header.is-scrolled {
+			width: min(100% - 28px, 1120px);
+		}
+
 		.site-nav {
 			min-height: 0;
 			align-items: flex-start;
@@ -625,26 +969,28 @@
 			font-size: 0.82rem;
 		}
 
+		.palette-trigger {
+			width: 100%;
+			justify-content: center;
+		}
+
 		.site-main {
 			margin-top: 30px;
 			margin-bottom: 48px;
 		}
 
 		.site-footer {
-			grid-template-columns: 1fr auto;
-			gap: 8px 16px;
 			padding-top: 18px;
 		}
 
-		.site-footer p {
-			grid-row: 2;
-			justify-self: start;
+		.footer-top {
+			grid-template-columns: 1fr;
+			gap: 24px;
 		}
 
-		.site-footer small {
-			grid-column: 2;
-			grid-row: 1 / span 2;
-			text-align: right;
+		.footer-bottom {
+			flex-wrap: wrap;
+			justify-content: flex-start;
 		}
 	}
 
@@ -653,14 +999,27 @@
 			scroll-behavior: auto;
 		}
 
+		:global(.reveal-init) {
+			opacity: 1;
+			transform: none;
+			transition: none;
+		}
+
 		.orb,
 		.skate-route,
-		.nav-links a[aria-current='page'] {
+		.nav-links a[aria-current='page'],
+		.top-progress-sweep {
 			animation: none;
 		}
 
 		.skate-rider {
 			display: none;
+		}
+
+		.site-header,
+		.site-nav,
+		.top-progress-fill {
+			transition: none;
 		}
 	}
 </style>

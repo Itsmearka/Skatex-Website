@@ -1,6 +1,7 @@
 <script>
 	import * as prismicH from '@prismicio/helpers';
 	import { cursorGlow } from '$lib/cursorGlow';
+	import { reveal } from '$lib/scrollReveal';
 	import { normalizeUiText } from '$lib/typography';
 	export let slice;
 
@@ -8,7 +9,7 @@
 </script>
 
 <div class="welcome-wrap" data-tour="welcome">
-	<div class="welcome-banner" use:cursorGlow>
+	<div class="welcome-banner" use:cursorGlow use:reveal>
 		<span class="welcome-glow" aria-hidden="true" />
 		<h2 class="welcome-text">{label}</h2>
 		<span class="welcome-caption">Skate culture, in motion</span>
