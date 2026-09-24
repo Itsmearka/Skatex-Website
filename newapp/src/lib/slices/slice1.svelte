@@ -1,10 +1,11 @@
 <script>
 	import * as prismicH from '@prismicio/helpers';
+	import { reveal } from '$lib/scrollReveal';
 	import { normalizeUiText } from '$lib/typography';
 	export let slice;
 </script>
 
-<section class="section-heading">
+<section class="section-heading" use:reveal>
 	<span class="section-marker" aria-hidden="true" />
 	<h2>{normalizeUiText(prismicH.asText(slice.primary.title))}</h2>
 </section>
